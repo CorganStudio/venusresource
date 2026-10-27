@@ -1424,6 +1424,133 @@ RS.installWebGLRecovery = function(viewer) {
   }, false);
 };
 
+// ═══ QUIET RENDERING (fan control, 2026-10-26) ═══
+// Every site used to redraw 60 times a second forever at full Retina
+// resolution, which kept laptop fans spinning on a still scene. These helpers
+// draw only when something changes: input, camera moves, loads, or something
+// moving on its own (at a capped rate). A still scene draws once a second as a
+// safety net, and a hidden tab draws nothing.
+RS.PIXEL_RATIO_CAP = 1.5;
+RS.pixelRatio = function() { return Math.min(window.devicePixelRatio || 1, RS.PIXEL_RATIO_CAP); };
+
+var RS_WAKE_EVENTS = ['pointerdown', 'pointerup', 'wheel', 'keydown', 'click', 'touchstart', 'touchend', 'change', 'input'];
+function rsOnWake(fn, withMove) {
+  var events = withMove ? RS_WAKE_EVENTS.concat(['pointermove', 'touchmove']) : RS_WAKE_EVENTS;
+  events.forEach(function(ev) { window.addEventListener(ev, fn, { passive: true, capture: true }); });
+  window.addEventListener('resize', fn);
+  document.addEventListener('visibilitychange', function() { if (!document.hidden) fn(); });
+}
+
+/**
+ * Three.js and Spacekit loops. Call quiet.frame(moving) once per animation
+ * frame; it returns true when this frame should draw. `moving` is true while
+ * something moves on its own (time running, orbits playing): the scene then
+ * draws at opts.fps (every frame when omitted). Input draws every frame.
+ * opts: { renderer, controls, fps }
+ */
+RS.quietThree = function(opts) {
+  opts = opts || {};
+  var wakeUntil = 0;
+  var last = 0;
+  var minGap = opts.fps ? 1000 / opts.fps - 2 : 0;
+  function wake() { wakeUntil = performance.now() + 1000; }
+  if (opts.renderer) opts.renderer.setPixelRatio(RS.pixelRatio());
+  if (opts.controls && opts.controls.addEventListener) opts.controls.addEventListener('change', wake);
+  rsOnWake(wake, false);
+  if (window.THREE && THREE.DefaultLoadingManager) {
+    var lm = THREE.DefaultLoadingManager;
+    var onLoad = lm.onLoad;
+    var onProgress = lm.onProgress;
+    lm.onLoad = function() { wake(); if (onLoad) onLoad.apply(this, arguments); };
+    lm.onProgress = function() { wake(); if (onProgress) onProgress.apply(this, arguments); };
+  }
+  wake();
+  return {
+    wake: wake,
+    frame: function(moving) {
+      if (document.hidden) return false;
+      var now = performance.now();
+      var due = now < wakeUntil || (moving ? now - last >= minGap : now - last >= 1000);
+      if (due) last = now;
+      return due;
+    }
+  };
+};
+
+/**
+ * Cesium viewers: request-render mode, resolution capped, input wakes it,
+ * shown entities that move on their own (or opts.isMoving()) tick at opts.fps
+ * (default 10), and the loop stops in a hidden tab. Call right after the
+ * Viewer is made. Returns { animate(entity), wake() }; animate() is only for
+ * an entity whose motion is not in its position.
+ */
+RS.quietCesium = function(viewer, opts) {
+  opts = opts || {};
+  var scene = viewer.scene;
+  var camera = viewer.camera;
+  var C3 = Cesium.Cartesian3;
+  scene.requestRenderMode = true;
+  scene.maximumRenderTimeChange = Infinity;
+  viewer.resolutionScale = RS.pixelRatio();
+  function wake() { scene.requestRender(); }
+  rsOnWake(wake, true);
+  // Cesium redraws whenever the camera has moved at all. Its own per-frame
+  // math turns a still camera by about 1e-15, which on its own kept the scene
+  // redrawing ~10 times a second: changes that small are put back.
+  var keep = { d: new C3(), u: new C3(), r: new C3() };
+  var have = false;
+  scene.preUpdate.addEventListener(function() {
+    if (have && C3.equalsEpsilon(camera.direction, keep.d, 0, 1e-12) && C3.equalsEpsilon(camera.up, keep.u, 0, 1e-12) && C3.equalsEpsilon(camera.right, keep.r, 0, 1e-12)) {
+      C3.clone(keep.d, camera.direction);
+      C3.clone(keep.u, camera.up);
+      C3.clone(keep.r, camera.right);
+    } else {
+      C3.clone(camera.direction, keep.d);
+      C3.clone(camera.up, keep.u);
+      C3.clone(camera.right, keep.r);
+      have = true;
+    }
+  });
+  // entities that move on their own (sampled or callback positions), found as they are added
+  var animated = [];
+  function track(collection) {
+    var add = function(e) { if (e.position && !e.position.isConstant && animated.indexOf(e) < 0) animated.push(e); };
+    collection.values.forEach(add);
+    collection.collectionChanged.addEventListener(function(c, added, removed) {
+      added.forEach(add);
+      removed.forEach(function(e) { var i = animated.indexOf(e); if (i >= 0) animated.splice(i, 1); });
+    });
+  }
+  track(viewer.entities);
+  if (viewer.dataSources) {
+    for (var i = 0; i < viewer.dataSources.length; i++) track(viewer.dataSources.get(i).entities);
+    viewer.dataSources.dataSourceAdded.addEventListener(function(c, ds) { track(ds.entities); });
+  }
+  function shown(e) {
+    var c = e.entityCollection;
+    if (!c || !c.contains(e) || !e.isShowing) return false;
+    var owner = c.owner;
+    if (c !== viewer.entities && owner && owner.entities === c && viewer.dataSources && !viewer.dataSources.contains(owner)) return false;
+    return true;
+  }
+  var gap = 1000 / (opts.fps || 10);
+  var last = 0;
+  setInterval(function() {
+    if (document.hidden) return;
+    var now = Date.now();
+    var moving = (opts.isMoving && opts.isMoving()) || animated.some(shown);
+    if (now - last >= (moving ? gap : 1000) - 5) { last = now; scene.requestRender(); }
+  }, Math.min(100, gap));
+  document.addEventListener('visibilitychange', function() {
+    viewer.useDefaultRenderLoop = !document.hidden;
+    if (!document.hidden) wake();
+  });
+  return {
+    wake: wake,
+    animate: function(entity) { if (entity && animated.indexOf(entity) < 0) animated.push(entity); return entity; }
+  };
+};
+
 // Cloudflare Web Analytics injection. Reads the token from
 // <meta name="rs-cf-analytics-token" content="..."> or window.RS_CF_ANALYTICS_TOKEN.
 // Skips silently if no token is present, so the meta tag can ship empty
