@@ -1,3 +1,24 @@
 User-agent: *
 Allow: /
+
+# AI answer and search crawlers (fetch pages to cite and link them in answers;
+# not training crawlers). Training crawlers stay blocked below.
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
 Sitemap: https://venusresource.net/sitemap.xml
