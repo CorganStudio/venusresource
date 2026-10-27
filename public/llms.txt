@@ -1,0 +1,30 @@
+# VenusResource
+
+> Domain research archive for Venus. Literature reviews and primary-source analyses. Curated by Corgan Studio, Inc.
+
+Research Archive: https://venusresource.net/research/ (literature reviews by Corgan Studio, Inc., open to read).
+
+## Research Archive
+
+- [Future Venus mission architecture: DAVINCI, VERITAS, and EnVision](https://venusresource.net/research/davinci-veritas-envision): Review of the next-decade Venus mission portfolio - NASA's DAVINCI atmospheric probe and VERITAS radar orbiter, ESA's EnVision orbiter, and the complementary science questions each addresses for surface composition, atmosphere structure, and present-day activity.
+- [Surface weathering and recent volcanic activity at Maat Mons](https://venusresource.net/research/maat-mons-volcanic-activity): Review of the Magellan SAR re-analysis evidence for recent volcanic activity at Maat Mons, the consensus interpretation of vent reshaping between Magellan cycle 1 and cycle 2 imagery, and the implications for current Venus volcanism.
+- [Venera and Vega lander geochemistry: re-analysis with modern frameworks](https://venusresource.net/research/venera-vega-geochemistry): Review of the Venera 8-14 and Vega 1-2 lander geochemical measurements, modern re-analysis through the lens of refined Venus surface-temperature constraints and updated reference compositions, and the implications for present-day surface mineralogy.
+- [Cloud-level super-rotation: Akatsuki cloud-tracking and dynamical consequences](https://venusresource.net/research/venus-cloud-superrotation): Review of Venus atmospheric super-rotation at the cloud level, with focus on Akatsuki UVI and IR2 cloud-tracking results, thermal-tide forcing, and the open theoretical question of momentum source.
+- [Venus phosphine: detection claim, follow-up constraints, and present status](https://venusresource.net/research/venus-phosphine-status): Review of the 2020 phosphine-detection report at Venus, the published follow-up observations and reanalyses, and the current status of the claim, with focus on the JCMT, ALMA, SOFIA, and recent JWST observations.
+
+## Related archives
+
+- [TerraResource Research Archive](https://terraresource.net/research/)
+- [MoonResource Research Archive](https://moonresource.com/research/)
+- [MarsResource Research Archive](https://marsresource.net/research/)
+- [SunResource Research Archive](https://sunresource.net/research/)
+- [MercuryResource Research Archive](https://mercuryresource.net/research/)
+- [JupiterResource Research Archive](https://jupiterresource.net/research/)
+- [SaturnResource Research Archive](https://saturnresource.net/research/)
+- [UranusResource Research Archive](https://uranusresource.net/research/)
+- [NeptuneResource Research Archive](https://neptuneresource.net/research/)
+- [PlutoResource Research Archive](https://plutoresource.net/research/)
+- [GalacticResource Research Archive](https://galacticresource.com/research/)
+- [SolarSystemResource Research Archive](https://solarsystemresource.com/research/)
+
+Sitemap: https://venusresource.net/sitemap.xml
